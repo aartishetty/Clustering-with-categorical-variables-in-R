@@ -1,0 +1,125 @@
+```{r}
+library(readxl)
+data<- read_excel("C:/Users/clustering data.xlsx",sheet="Section4")
+#data<-data[,-1]
+col_names = sapply(data, function(col) length(unique(col))<20 )
+data[ , col_names] = lapply(data[ , col_names] , factor)
+str(data)
+data
+```
+```{r}
+"""
+data$Q102 = as.numeric(data$Q102)
+data$Q103_1 = as.numeric(data$Q103_1)
+data$Q103_2 = as.numeric(data$Q103_2)
+data$Q103_3 = as.numeric(data$Q103_3)
+data$Q103_4 = as.numeric(data$Q103_4)
+data$Q103_DK = as.numeric(data$Q103_DK)
+data$AGE2 = as.numeric(data$AGE2)
+data$State=as.factor(data$State)
+str(data)
+"""
+```
+
+```{r}
+install.packages("purrr")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("readr")
+install.packages("Rtsne")
+install.packages("factoextra")
+library(cluster)
+library(factoextra)
+library(purrr)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(Rtsne)
+```
+
+
+```{r}
+#1.Agglomerative Hierarchical Clustering
+#agnes
+gower_dist = daisy(data[-1], metric = "gower")
+summary(gower_dist)
+gower_mat <- as.matrix(gower_dist)
+dim(gower_mat)
+```
+
+```{r}
+# methods to assess ac
+#Agglomerative coefficient which measures the amount of clustering structure found (values closer to 1 suggest strong clustering structure).
+m <- c( "average", "single", "complete", "ward")
+names(m) <- c( "average", "single", "complete", "ward")
+```
+
+```{r}
+# function to compute coefficient
+ac <- function(x) {
+  agnes(gower_mat, method = x)$ac
+}
+```
+
+```{r}
+map_dbl(m, ac)
+#   average    single  complete      ward 
+# 0.6461074 0.4112364 0.8171060 0.9768231 
+#ward distance with the highest ac
+```
+```{r}
+dist1 <- agnes(gower_mat, method = "ward")
+tree1=pltree(dist1, cex = 0.6, hang = -1, main = "Dendrogram of agnes") 
+tree1
+```
+```{r}
+#Determining Optimal Clusters
+fviz_nbclust(gower_mat, FUN = hcut, method = "wss")
+fviz_nbclust(gower_mat, FUN = hcut, method = "silhouette")
+#best: 2 clusters
+```
+
+```{r}
+#identify sub-groups
+# Cut agnes() tree into 2 groups
+sub_grp1=cutree(as.hclust(dist1), k =2)
+table(sub_grp1)
+# 1   2 
+# 431 517 
+plot(as.hclust(dist1), cex = 0.6)
+rect.hclust(as.hclust(dist1), k = 2, border = 2:5)
+```
+
+
+```{r}
+rownames(gower_mat)[sub_grp1 == 1]
+rownames(gower_mat)[sub_grp1 == 2]
+#rownames(gower_mat)[sub_grp1 == 3]
+#rownames(gower_mat)[sub_grp1 == 4]
+```
+
+
+```{r}
+cluster_new <- mutate(data, cluster = sub_grp1)
+#write.xlsx(cluster_new,"C:/UsersDesktop/cluster_new.xlsx")
+write.csv(cluster_new,"C:/Users/Desktop/cluster_new.csv")
+#count(cluster_new,cluster)
+#table(cluster$cluster_new,cluster_new)
+```
+
+
+
+
+
+
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
